@@ -1,7 +1,9 @@
 from psychopy import visual, core, event, monitors
 import numpy as np
 
-WINDOW_SIZE = [1920, 1080]
+# If the window is not square, the "norm" units will lead to the stimuli
+# having the aspect ratio of the window.
+WINDOW_SIZE = [800, 800]
 BOUNDARY = 0.9
 
 mon = monitors.Monitor("testMonitor")
@@ -99,11 +101,11 @@ def main(face_sheep=True):  # Add parameter to control wolf orientation
     win = visual.Window(
         WINDOW_SIZE,
         color="gray",
-        # units="deg",
+        units="norm",  # height
         allowGUI=False,
         monitor=mon,
         screen=0,
-        fullscr=True,
+        fullscr=False,
     )
 
     win.mouseVisible = False
