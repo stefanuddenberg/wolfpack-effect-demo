@@ -4,11 +4,13 @@ import numpy as np
 # If the window is not square, the "norm" units will lead to the stimuli
 # having the aspect ratio of the window.
 WINDOW_SIZE = [800, 800]
-BOUNDARY = 0.9
+CENTER = [0, 0]
+BOUNDARY = 0.9  # 1 is max, but we should account for the size of the stimuli
+NUM_WOLVES = 8
 
 mon = monitors.Monitor("testMonitor")
-mon.setSizePix(WINDOW_SIZE)  # Your monitor's native resolution
-mon.setWidth(52)  # Physical width of your monitor in cm
+mon.setSizePix(WINDOW_SIZE)  # Monitor's native resolution
+mon.setWidth(52)  # Physical width of monitor in cm
 mon.setDistance(57)  # Viewing distance in cm
 mon.saveMon()  # Save the monitor configuration
 
@@ -33,7 +35,7 @@ class Wolf:
         self.speed = 0.008
         self.direction = np.random.uniform(0, 2 * np.pi)  # Random initial direction
 
-    def calculate_facing_angle(self, target_pos):
+    def calculate_facing_angle(self, target_pos, units="deg"):
         # Calculate angle to the target in radians
         dx = target_pos[0] - self.stimulus.pos[0]
         dy = target_pos[1] - self.stimulus.pos[1]
@@ -41,7 +43,7 @@ class Wolf:
 
         # Convert to PsychoPy's clockwise orientation system
         angle = (90 - angle) % 360  # 0° is vertical, clockwise is positive
-        return angle
+        return angle if units == "deg" else np.radians(angle)
 
     def update(self, target_pos, face_sheep):
         # Smooth movement in current direction
@@ -62,14 +64,15 @@ class Wolf:
         self.stimulus.pos = new_pos
 
         # Gradually adjust direction with some randomness
-        target_angle = self.calculate_facing_angle(target_pos)
-        angle_diff = (target_angle - self.direction + np.pi) % (2 * np.pi) - np.pi
+        angle_to_sheep_rad = self.calculate_facing_angle(target_pos, units="rad")
+        angle_diff = (angle_to_sheep_rad - self.direction + np.pi) % (2 * np.pi) - np.pi
         self.direction += np.clip(angle_diff, -0.02, 0.02) + np.random.normal(0, 0.1)
 
         # Point either at sheep or away from sheep based on face_sheep parameter
-        angle_to_sheep = target_angle
-        # If face_sheep is True, point toward sheep, otherwise point away
-        self.stimulus.ori = angle_to_sheep if face_sheep else angle_to_sheep + 90
+        angle_to_sheep_deg = np.degrees(angle_to_sheep_rad)
+        self.stimulus.ori = (
+            angle_to_sheep_deg if face_sheep else angle_to_sheep_deg + 90
+        )
 
     def draw(self):
         self.stimulus.draw()
@@ -79,7 +82,7 @@ class Sheep:
     def __init__(self, window):
         self.window = window
         self.stimulus = visual.Circle(
-            window, radius=0.05, fillColor="white", pos=[0, 0]
+            window, radius=0.05, fillColor="white", pos=CENTER
         )
         self.mouse = event.Mouse(win=window)  # Create mouse object
 
@@ -96,12 +99,11 @@ class Sheep:
         return self.stimulus.pos
 
 
-def main(face_sheep=True):  # Add parameter to control wolf orientation
-    # Setup
+def main(face_sheep=True):
     win = visual.Window(
         WINDOW_SIZE,
         color="gray",
-        units="norm",  # height
+        units="norm",
         allowGUI=False,
         monitor=mon,
         screen=0,
@@ -110,19 +112,15 @@ def main(face_sheep=True):  # Add parameter to control wolf orientation
 
     win.mouseVisible = False
 
-    # Create sheep (prey) and wolf pack
     sheep = Sheep(win)
-    wolves = [Wolf(win) for _ in range(8)]
+    wolves = [Wolf(win) for _ in range(NUM_WOLVES)]
 
-    # Main animation loop
     while not event.getKeys(keyList=["escape"]):
-        # Update
         sheep.update()
 
         for wolf in wolves:
-            wolf.update(sheep.pos, face_sheep)  # Pass the face_sheep parameter
+            wolf.update(sheep.pos, face_sheep)
 
-        # Draw
         sheep.draw()
         for wolf in wolves:
             wolf.draw()
