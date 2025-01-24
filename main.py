@@ -9,7 +9,7 @@ BOUNDARY = 0.9  # 1 is max, but we should account for the size of the stimuli
 NUM_WOLVES = 8
 
 mon = monitors.Monitor("testMonitor")
-mon.setSizePix(WINDOW_SIZE)  # Monitor's native resolution
+mon.setSizePix(WINDOW_SIZE)
 mon.setWidth(52)  # Physical width of monitor in cm
 mon.setDistance(57)  # Viewing distance in cm
 mon.saveMon()  # Save the monitor configuration
