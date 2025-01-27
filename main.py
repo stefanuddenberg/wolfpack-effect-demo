@@ -64,12 +64,10 @@ class Wolf:
         self.stimulus.pos = new_pos
 
         # Gradually adjust direction with some randomness
-        angle_to_sheep_rad = self.calculate_facing_angle(target_pos, units="rad")
-        angle_diff = (angle_to_sheep_rad - self.direction + np.pi) % (2 * np.pi) - np.pi
-        self.direction += np.clip(angle_diff, -0.02, 0.02) + np.random.normal(0, 0.1)
+        self.direction += np.random.normal(0, 0.1)
 
         # Point either at sheep or away from sheep based on face_sheep parameter
-        angle_to_sheep_deg = np.degrees(angle_to_sheep_rad)
+        angle_to_sheep_deg = self.calculate_facing_angle(target_pos, units="deg")
         self.stimulus.ori = (
             angle_to_sheep_deg if face_sheep else angle_to_sheep_deg + 90
         )
