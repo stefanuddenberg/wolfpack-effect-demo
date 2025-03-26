@@ -1,38 +1,83 @@
-config = {
-    "monitor": {
-        "width_cm": 31.26,
-        "viewing_distance_cm": 57,
-        "resolution_px": [1512, 982],
-    },
-    "display": {
-        "screen": 0,
-        "units": "deg",
-        "bg_color": "black",
-        "full_screen": True,
-        "center_deg": [0, 0],
-        "allow_gui": False,
-        "mouse_visible": False,
-    },
-    "wolf": {
-        "count": 8,
-        "speed": 0.1,
-        "color": "red",
-        "size": 1.5,
-        "vertices": [
-            (-0.5, -0.5),  # Bottom-left
-            (0, 0.5),  # Top-center (point of the chevron)
-            (0.5, -0.5),  # Bottom-right
-            (0, -0.2),  # Inner bottom-center
-            (-0.5, -0.5),  # Back to start to close the shape
-        ],
-        "direction_noise": 0.1,
-    },
-    "sheep": {
-        "color": "white",
-        "radius": 0.5,
-    },
-    "keys": {
-        "quit": ["escape"],
-        "toggle_condition": ["space"],
-    },
-}
+from dataclasses import dataclass
+from typing import List, Tuple, Literal
+
+
+@dataclass
+class MonitorConfig:
+    width_cm: float = 31.26
+    viewing_distance_cm: float = 57
+    resolution_px: Tuple[int, int] = (1512, 982)
+
+
+@dataclass
+class DisplayConfig:
+    screen: int = 0
+    units: Literal["deg", "rad"] = "deg"
+    bg_color: str = "black"
+    full_screen: bool = True
+    center_deg: Tuple[float, float] = (0, 0)
+    allow_gui: bool = False
+    mouse_visible: bool = False
+
+
+@dataclass
+class WolfConfig:
+    count: int = 8
+    speed: float = 0.1
+    color: str = "red"
+    size: float = 1.5
+    vertices: List[Tuple[float, float]] = None
+    direction_noise: float = 0.1
+
+    def __post_init__(self):
+        if self.vertices is None:
+            self.vertices = [
+                (-0.5, -0.5),  # Bottom-left
+                (0, 0.5),  # Top-center
+                (0.5, -0.5),  # Bottom-right
+                (0, -0.2),  # Inner bottom-center
+                (-0.5, -0.5),  # Back to start
+            ]
+
+
+@dataclass
+class SheepConfig:
+    color: str = "white"
+    radius: float = 0.5
+
+
+@dataclass
+class KeyConfig:
+    quit: List[str] = None
+    toggle_condition: List[str] = None
+
+    def __post_init__(self):
+        if self.quit is None:
+            self.quit = ["escape"]
+        if self.toggle_condition is None:
+            self.toggle_condition = ["space"]
+
+
+@dataclass
+class Config:
+    monitor: MonitorConfig = None
+    display: DisplayConfig = None
+    wolf: WolfConfig = None
+    sheep: SheepConfig = None
+    keys: KeyConfig = None
+
+    def __post_init__(self):
+        if self.monitor is None:
+            self.monitor = MonitorConfig()
+        if self.display is None:
+            self.display = DisplayConfig()
+        if self.wolf is None:
+            self.wolf = WolfConfig()
+        if self.sheep is None:
+            self.sheep = SheepConfig()
+        if self.keys is None:
+            self.keys = KeyConfig()
+
+
+# Create the configuration instance
+config = Config()

@@ -6,15 +6,15 @@ from typing import Literal
 from config import config
 
 # Constants
-WINDOW_SIZE = config["monitor"]["resolution_px"]
-CENTER = config["display"]["center_deg"]
-NUM_WOLVES = config["wolf"]["count"]
+WINDOW_SIZE = config.monitor.resolution_px
+CENTER = config.display.center_deg
+NUM_WOLVES = config.wolf.count
 
 # set up monitor
 mon = monitors.Monitor("testMonitor")
 mon.setSizePix(WINDOW_SIZE)
-mon.setWidth(config["monitor"]["width_cm"])
-mon.setDistance(config["monitor"]["viewing_distance_cm"])
+mon.setWidth(config.monitor.width_cm)
+mon.setDistance(config.monitor.viewing_distance_cm)
 mon.saveMon()
 
 width_pix, height_pix = mon.getSizePix()
@@ -22,8 +22,8 @@ width_deg = pix2deg(width_pix, mon)
 height_deg = pix2deg(height_pix, mon)
 
 # make sure that the wolves don't go out of bounds and bounce off the edges
-HORIZONTAL_BOUNDARY = width_deg / 2 - config["wolf"]["size"] / 2
-VERTICAL_BOUNDARY = height_deg / 2 - config["wolf"]["size"] / 2
+HORIZONTAL_BOUNDARY = width_deg / 2 - config.wolf.size / 2
+VERTICAL_BOUNDARY = height_deg / 2 - config.wolf.size / 2
 
 
 class Wolf:
@@ -35,11 +35,11 @@ class Wolf:
         self,
         window: visual.Window,
         pos: tuple[float, float] | None = None,
-        speed: float = config["wolf"]["speed"],
-        color: tuple[float, float, float] = config["wolf"]["color"],
-        size: float = config["wolf"]["size"],
-        vertices: list[tuple[float, float]] = config["wolf"]["vertices"],
-        direction_noise: float = config["wolf"]["direction_noise"],
+        speed: float = config.wolf.speed,
+        color: tuple[float, float, float] = config.wolf.color,
+        size: float = config.wolf.size,
+        vertices: list[tuple[float, float]] = config.wolf.vertices,
+        direction_noise: float = config.wolf.direction_noise,
     ) -> None:
         if pos is None:
             pos = [
@@ -63,7 +63,7 @@ class Wolf:
     def calculate_facing_angle(
         self,
         target_pos: tuple[float, float],
-        units: Literal["deg", "rad"] = config["display"]["units"],
+        units: Literal["deg", "rad"] = config.display.units,
     ) -> float:
         """Calculates the angle to the target in radians.
 
@@ -108,7 +108,7 @@ class Wolf:
         self.direction += np.random.normal(0, self.direction_noise)
 
         angle_to_sheep_deg = self.calculate_facing_angle(
-            target_pos, units=config["display"]["units"]
+            target_pos, units=config.display.units
         )
         self.ori = angle_to_sheep_deg if face_sheep else angle_to_sheep_deg + 90
 
@@ -163,8 +163,8 @@ class Sheep:
         self.window = window
         self.stimulus = visual.Circle(
             window,
-            radius=config["sheep"]["radius"],
-            fillColor=config["sheep"]["color"],
+            radius=config.sheep.radius,
+            fillColor=config.sheep.color,
             pos=CENTER,
         )
         self.mouse = event.Mouse(win=window)
@@ -212,22 +212,22 @@ def main(face_sheep: bool = True) -> None:
     win = visual.Window(
         monitor=mon,
         size=WINDOW_SIZE,
-        color=config["display"]["bg_color"],
-        units=config["display"]["units"],
-        allowGUI=config["display"]["allow_gui"],
-        screen=config["display"]["screen"],
-        fullscr=config["display"]["full_screen"],
+        color=config.display.bg_color,
+        units=config.display.units,
+        allowGUI=config.display.allow_gui,
+        screen=config.display.screen,
+        fullscr=config.display.full_screen,
     )
 
     # Need to set mouse visibility after creating the window
     # __init__ doesn't take it as an argument
-    win.mouseVisible = config["display"]["mouse_visible"]
+    win.mouseVisible = config.display.mouse_visible
 
     sheep = Sheep(win)
     wolves = [Wolf(win) for _ in range(NUM_WOLVES)]
 
-    while not event.getKeys(keyList=config["keys"]["quit"]):
-        if event.getKeys(keyList=config["keys"]["toggle_condition"]):
+    while not event.getKeys(keyList=config.keys.quit):
+        if event.getKeys(keyList=config.keys.toggle_condition):
             face_sheep = not face_sheep
 
         sheep.update()
