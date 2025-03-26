@@ -1,42 +1,63 @@
-from psychopy import visual, core, event, monitors
 import numpy as np
+from psychopy import core, event, monitors, visual
+from psychopy.tools.monitorunittools import pix2deg
 
-# If the window is not square, the "norm" units will lead to the stimuli
-# having the aspect ratio of the window.
-WINDOW_SIZE = [800, 800]
-CENTER = [0, 0]
-BOUNDARY = 0.9  # 1 is max, but we should account for the size of the stimuli
-NUM_WOLVES = 8
+from config import config
 
+# Constants
+WINDOW_SIZE = config["monitor"]["resolution_px"]
+CENTER = config["display"]["center_deg"]
+NUM_WOLVES = config["wolf"]["count"]
+
+# set up monitor
 mon = monitors.Monitor("testMonitor")
 mon.setSizePix(WINDOW_SIZE)
-mon.setWidth(52)  # Physical width of monitor in cm
-mon.setDistance(57)  # Viewing distance in cm
-mon.saveMon()  # Save the monitor configuration
+mon.setWidth(config["monitor"]["width_cm"])
+mon.setDistance(config["monitor"]["viewing_distance_cm"])
+mon.saveMon()
+
+width_pix, height_pix = mon.getSizePix()
+width_deg = pix2deg(width_pix, mon)
+height_deg = pix2deg(height_pix, mon)
+
+# make sure that the wolves don't go out of bounds and bounce off the edges
+HORIZONTAL_BOUNDARY = width_deg / 2 - config["wolf"]["size"] / 2
+VERTICAL_BOUNDARY = height_deg / 2 - config["wolf"]["size"] / 2
 
 
 class Wolf:
-    def __init__(self, window, pos=None):
+    def __init__(
+        self,
+        window,
+        speed=config["wolf"]["speed"],
+        color=config["wolf"]["color"],
+        size=config["wolf"]["size"],
+        vertices=config["wolf"]["vertices"],
+        direction_noise=config["wolf"]["direction_noise"],
+        pos=None,
+    ):
         if pos is None:
-            pos = [np.random.uniform(-0.8, 0.8), np.random.uniform(-0.8, 0.8)]
+            pos = [
+                np.random.uniform(-HORIZONTAL_BOUNDARY, HORIZONTAL_BOUNDARY),
+                np.random.uniform(-VERTICAL_BOUNDARY, VERTICAL_BOUNDARY),
+            ]
 
         self.stimulus = visual.ShapeStim(
             window,
-            vertices=[
-                (-0.05, -0.05),  # Bottom-left
-                (0, 0.05),  # Top-center (point of the chevron)
-                (0.05, -0.05),  # Bottom-right
-                (0, -0.02),  # Inner bottom-center
-                (-0.05, -0.05),  # Back to start to close the shape
-            ],  # Chevron shape
-            fillColor="red",
+            vertices=vertices,
+            fillColor=color,
             pos=pos,
+            size=size,
         )
-        self.speed = 0.008
-        self.direction = np.random.uniform(0, 2 * np.pi)  # Random initial direction
+        self.speed = speed
+
+        # initialize direction with random value in radians
+        self.direction = np.random.uniform(0, 2 * np.pi)
+        self.direction_noise = direction_noise
 
     def calculate_facing_angle(self, target_pos, units="deg"):
         # Calculate angle to the target in radians
+        # 0° is horizontal, 90° is vertical (counter-clockwise)
         dx = target_pos[0] - self.stimulus.pos[0]
         dy = target_pos[1] - self.stimulus.pos[1]
         angle = np.degrees(np.arctan2(dy, dx))
@@ -46,27 +67,23 @@ class Wolf:
         return angle if units == "deg" else np.radians(angle)
 
     def update(self, target_pos, face_sheep):
-        # Smooth movement in current direction
-        # Calculate new position
         new_pos = self.stimulus.pos + np.array(
             [np.cos(self.direction) * self.speed, np.sin(self.direction) * self.speed]
         )
 
-        # Check for collisions with boundaries and bounce
-        if abs(new_pos[0]) > BOUNDARY:  # Hit left or right wall
-            self.direction = np.pi - self.direction  # Reverse x direction
-            new_pos[0] = np.clip(new_pos[0], -BOUNDARY, BOUNDARY)
+        if abs(new_pos[0]) > HORIZONTAL_BOUNDARY:
+            self.direction = np.pi - self.direction
+            new_pos[0] = np.clip(new_pos[0], -HORIZONTAL_BOUNDARY, HORIZONTAL_BOUNDARY)
 
-        if abs(new_pos[1]) > BOUNDARY:  # Hit top or bottom wall
-            self.direction = -self.direction  # Reverse y direction
-            new_pos[1] = np.clip(new_pos[1], -BOUNDARY, BOUNDARY)
+        if abs(new_pos[1]) > VERTICAL_BOUNDARY:
+            self.direction = -self.direction
+            new_pos[1] = np.clip(new_pos[1], -VERTICAL_BOUNDARY, VERTICAL_BOUNDARY)
 
         self.stimulus.pos = new_pos
 
         # Gradually adjust direction with some randomness
-        self.direction += np.random.normal(0, 0.1)
+        self.direction += np.random.normal(0, self.direction_noise)
 
-        # Point either at sheep or away from sheep based on face_sheep parameter
         angle_to_sheep_deg = self.calculate_facing_angle(target_pos, units="deg")
         self.stimulus.ori = (
             angle_to_sheep_deg if face_sheep else angle_to_sheep_deg + 90
@@ -80,12 +97,14 @@ class Sheep:
     def __init__(self, window):
         self.window = window
         self.stimulus = visual.Circle(
-            window, radius=0.05, fillColor="white", pos=CENTER
+            window,
+            radius=config["sheep"]["radius"],
+            fillColor=config["sheep"]["color"],
+            pos=CENTER,
         )
-        self.mouse = event.Mouse(win=window)  # Create mouse object
+        self.mouse = event.Mouse(win=window)
 
     def update(self):
-        # Update position based on current mouse location
         self.position = self.mouse.getPos()
         self.stimulus.pos = self.position
 
@@ -99,21 +118,26 @@ class Sheep:
 
 def main(face_sheep=True):
     win = visual.Window(
-        WINDOW_SIZE,
-        color="black",
-        units="norm",
-        allowGUI=False,
+        size=WINDOW_SIZE,
+        color=config["display"]["bg_color"],
+        units=config["display"]["units"],
+        allowGUI=config["display"]["allow_gui"],
         monitor=mon,
-        screen=0,
-        fullscr=False,
+        screen=config["display"]["screen"],
+        fullscr=config["display"]["full_screen"],
     )
 
-    win.mouseVisible = False
+    # have to set mouse visibility after creating the window
+    # __init__ doesn't take it as an argument
+    win.mouseVisible = config["display"]["mouse_visible"]
 
     sheep = Sheep(win)
     wolves = [Wolf(win) for _ in range(NUM_WOLVES)]
 
-    while not event.getKeys(keyList=["escape"]):
+    while not event.getKeys(keyList=config["keys"]["quit"]):
+        if event.getKeys(keyList=config["keys"]["toggle_condition"]):
+            face_sheep = not face_sheep
+
         sheep.update()
 
         for wolf in wolves:
@@ -128,4 +152,4 @@ def main(face_sheep=True):
 
 
 if __name__ == "__main__":
-    main(face_sheep=True)
+    main(face_sheep=False)
