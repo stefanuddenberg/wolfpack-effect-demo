@@ -55,7 +55,7 @@ class Wolf:
         self.direction = np.random.uniform(0, 2 * np.pi)
         self.direction_noise = direction_noise
 
-    def calculate_facing_angle(self, target_pos, units="deg"):
+    def calculate_facing_angle(self, target_pos, units=config["display"]["units"]):
         # Calculate angle to the target in radians
         # 0° is horizontal, 90° is vertical (counter-clockwise)
         dx = target_pos[0] - self.stimulus.pos[0]
@@ -84,7 +84,9 @@ class Wolf:
         # Gradually adjust direction with some randomness
         self.direction += np.random.normal(0, self.direction_noise)
 
-        angle_to_sheep_deg = self.calculate_facing_angle(target_pos, units="deg")
+        angle_to_sheep_deg = self.calculate_facing_angle(
+            target_pos, units=config["display"]["units"]
+        )
         self.stimulus.ori = (
             angle_to_sheep_deg if face_sheep else angle_to_sheep_deg + 90
         )
