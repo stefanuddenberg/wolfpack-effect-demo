@@ -100,7 +100,7 @@ class Sheep:
 def main(face_sheep=True):
     win = visual.Window(
         WINDOW_SIZE,
-        color="gray",
+        color="black",
         units="norm",
         allowGUI=False,
         monitor=mon,
