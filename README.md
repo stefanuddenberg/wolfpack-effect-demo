@@ -8,6 +8,7 @@ To run the demo, install the dependencies within your Python environment and run
 pip install -r requirements.txt
 python main.py
 ```
+You can move the "sheep" cursor around the screen by moving the mouse. Toggle the condition of the wolves (either facing towards or 90 degrees away from your "sheep" cursor) by pressing the spacebar.
 
 # References
 
