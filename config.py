@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import List, Tuple, Literal
+from typing import Literal
 
 
 @dataclass
 class MonitorConfig:
     width_cm: float = 31.26
     viewing_distance_cm: float = 57
-    resolution_px: Tuple[int, int] = (1512, 982)
+    resolution_px: tuple[int, int] = (1512, 982)
 
 
 @dataclass
@@ -15,7 +15,7 @@ class DisplayConfig:
     units: Literal["deg", "rad"] = "deg"
     bg_color: str = "black"
     full_screen: bool = True
-    center_deg: Tuple[float, float] = (0, 0)
+    center_deg: tuple[float, float] = (0, 0)
     allow_gui: bool = False
     mouse_visible: bool = False
 
@@ -26,7 +26,7 @@ class WolfConfig:
     speed: float = 0.1
     color: str = "red"
     size: float = 1.5
-    vertices: List[Tuple[float, float]] = None
+    vertices: list[tuple[float, float]] | None = None
     direction_noise: float = 0.1
 
     def __post_init__(self):
@@ -48,8 +48,8 @@ class SheepConfig:
 
 @dataclass
 class KeyConfig:
-    quit: List[str] = None
-    toggle_condition: List[str] = None
+    quit: list[str] = None
+    toggle_condition: list[str] = None
 
     def __post_init__(self):
         if self.quit is None:
