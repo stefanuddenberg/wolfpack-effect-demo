@@ -2,23 +2,12 @@ from psychopy import event, visual
 
 from config import config
 from agents import Sheep, Wolf
+from utils import create_window
 
 
 def main(face_sheep: bool = True) -> None:
     """The main function that runs the demo."""
-    win = visual.Window(
-        monitor=config.display.monitor,
-        size=config.display.resolution_px,
-        color=config.display.bg_color,
-        units=config.display.units,
-        allowGUI=config.display.allow_gui,
-        screen=config.display.screen,
-        fullscr=config.display.full_screen,
-    )
-
-    # Need to set mouse visibility after creating the window
-    # __init__ doesn't take it as an argument
-    win.mouseVisible = config.display.mouse_visible
+    win = create_window(config=config)
 
     sheep = Sheep(win)
     wolves = [Wolf(win) for _ in range(config.wolf.count)]
