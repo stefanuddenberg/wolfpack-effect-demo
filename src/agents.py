@@ -1,5 +1,5 @@
 import numpy as np
-from config import config
+from .config import config
 from psychopy import visual, event
 from typing import Literal
 

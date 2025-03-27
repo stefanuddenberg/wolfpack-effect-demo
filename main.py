@@ -1,8 +1,8 @@
 from psychopy import event, visual
 
-from config import config
-from agents import Sheep, Wolf
-from utils import create_window
+from src.config import config
+from src.agents import Sheep, Wolf
+from src.utils import create_window
 
 
 def main(face_sheep: bool = True) -> None:
