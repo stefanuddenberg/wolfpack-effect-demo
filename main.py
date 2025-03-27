@@ -1,4 +1,5 @@
 from psychopy import event
+from psychopy.visual import Window
 
 from src.config import config
 from src.agents import Sheep, Wolf
@@ -7,10 +8,10 @@ from src.utils import create_window
 
 def main(face_sheep: bool = True) -> None:
     """The main function that runs the demo."""
-    win = create_window(config=config)
+    win: Window = create_window(config=config)
 
-    sheep = Sheep(win)
-    wolves = [Wolf(win) for _ in range(config.wolf.count)]
+    sheep: Sheep = Sheep(win)
+    wolves: list[Wolf] = [Wolf(win) for _ in range(config.wolf.count)]
 
     while not event.getKeys(keyList=config.keys.quit):
         if event.getKeys(keyList=config.keys.toggle_condition):
