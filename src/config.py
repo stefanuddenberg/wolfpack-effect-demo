@@ -29,7 +29,7 @@ class DisplayConfig:
 class WolfConfig:
     count: int = 8
     speed: float = 0.1
-    color: str = "red"
+    color: tuple[float, float, float] | str = "red"
     size: float = 1.5
     # Chevron vertices
     vertices: list[tuple[float, float]] = field(
@@ -46,7 +46,7 @@ class WolfConfig:
 
 @dataclass
 class SheepConfig:
-    color: str = "white"
+    color: tuple[float, float, float] | str = "white"
     radius: float = 0.5
 
 
