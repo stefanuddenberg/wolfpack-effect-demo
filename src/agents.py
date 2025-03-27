@@ -1,10 +1,111 @@
+from abc import ABC, abstractmethod
 import numpy as np
 from .config import config
 from psychopy import visual, event
 from typing import Literal
 
 
-class Wolf:
+class Agent(ABC):
+    """The base class for all agents. It is a circle by default."""
+
+    def __init__(
+        self,
+        window: visual.Window,
+        pos: tuple[float, float] | None = None,
+        radius: float = config.sheep.radius,
+        color: tuple[float, float, float] | str = config.sheep.color,
+    ):
+        if pos is None:
+            pos = config.display.center_deg
+
+        self.window = window
+        self.stimulus = visual.Circle(
+            window,
+            radius=radius,
+            fillColor=color,
+            pos=pos,
+        )
+
+    @abstractmethod
+    def update(self) -> None:
+        """Updates the agent's position and/or other properties
+        for the current frame."""
+        pass
+
+    def draw(self) -> None:
+        self.stimulus.draw()
+
+    @property
+    def pos(self) -> tuple[float, float]:
+        """The position of the agent (aka its stimulus's position)."""
+        return self.stimulus.pos
+
+    @pos.setter
+    def pos(self, new_pos: tuple[float, float]) -> None:
+        """Sets the position of the agent, keeping it within bounds."""
+        self.stimulus.pos = self._get_bounded_pos(new_pos)
+
+    def _get_bounded_pos(self, new_pos: tuple[float, float]) -> tuple[float, float]:
+        """For a given position, returns a valid position that is within bounds."""
+
+        x, y = new_pos
+        bounded_x = np.clip(
+            x,
+            -config.display.horizontal_boundary,
+            config.display.horizontal_boundary,
+        )
+        bounded_y = np.clip(
+            y,
+            -config.display.vertical_boundary,
+            config.display.vertical_boundary,
+        )
+
+        return (bounded_x, bounded_y)
+
+    @property
+    def ori(self) -> float:
+        """The orientation of the agent (aka its stimulus's orientation)."""
+        if not hasattr(self.stimulus, "ori"):
+            raise AttributeError("Agent has no orientation.")
+        return self.stimulus.ori
+
+    @ori.setter
+    def ori(self, new_ori: float) -> None:
+        """Sets the orientation of the agent."""
+        if not hasattr(self.stimulus, "ori"):
+            raise AttributeError("Agent has no orientation.")
+        self.stimulus.ori = new_ori
+
+    @property
+    def color(self) -> tuple[float, float, float] | str:
+        """The color of the agent (aka its stimulus's color)."""
+        if not hasattr(self.stimulus, "fillColor"):
+            raise AttributeError("Agent has no color.")
+        return self.stimulus.fillColor
+
+    @color.setter
+    def color(self, new_color: tuple[float, float, float] | str) -> None:
+        """Sets the color of the agent."""
+        if not hasattr(self.stimulus, "fillColor"):
+            raise AttributeError("Agent has no color.")
+        self.stimulus.fillColor = new_color
+
+    @property
+    def radius(self) -> float:
+        """The radius of the agent (aka its stimulus's radius)."""
+        if not hasattr(self.stimulus, "radius"):
+            raise AttributeError("Agent has no radius.")
+        return self.stimulus.radius
+
+    @radius.setter
+    def radius(self, new_radius: float) -> None:
+        """Sets the radius of the agent."""
+        if not hasattr(self.stimulus, "radius"):
+            raise AttributeError("Agent has no radius.")
+        self.stimulus.radius = new_radius
+
+
+class Wolf(Agent):
     """The wolf is a chevron that moves randomly (but smoothly) and either
     faces towards the sheep or 90 degrees away from the sheep.
     """
@@ -62,8 +163,10 @@ class Wolf:
         """
         # Calculate angle to the target and convert to degrees
         # 0° is horizontal, 90° is vertical (counter-clockwise)
-        dx = target_pos[0] - self.pos[0]
-        dy = target_pos[1] - self.pos[1]
+        x, y = self.pos
+        target_x, target_y = target_pos
+        dx = target_x - x
+        dy = target_y - y
 
         angle = np.degrees(np.arctan2(dy, dx))
 
@@ -98,53 +201,32 @@ class Wolf:
         )
         self.ori = angle_to_sheep_deg if face_sheep else angle_to_sheep_deg + 90
 
-    def draw(self) -> None:
-        self.stimulus.draw()
-
-    # We use properties for convenience
     @property
     def pos(self) -> tuple[float, float]:
-        return self.stimulus.pos
+        return super().pos
 
     @pos.setter
     def pos(self, new_pos: tuple[float, float]) -> None:
         """Sets the position of the wolf, keeping it within bounds.
+        If the wolf hits a boundary, it will bounce off in the opposite direction.
 
         Args:
             new_pos (tuple): The new position of the wolf
         """
 
         # Check if we hit a boundary and need to bounce off in the opposite direction
-        if abs(new_pos[0]) > config.display.horizontal_boundary:
+        x, y = new_pos
+        if abs(x) > config.display.horizontal_boundary:
             self.direction = np.pi - self.direction
 
-        if abs(new_pos[1]) > config.display.vertical_boundary:
+        if abs(y) > config.display.vertical_boundary:
             self.direction = -self.direction
 
         # Keep in bounds
-        bounded_x = np.clip(
-            new_pos[0],
-            -config.display.horizontal_boundary,
-            config.display.horizontal_boundary,
-        )
-        bounded_y = np.clip(
-            new_pos[1],
-            -config.display.vertical_boundary,
-            config.display.vertical_boundary,
-        )
-
-        self.stimulus.pos = (bounded_x, bounded_y)
-
-    @property
-    def ori(self) -> float:
-        return self.stimulus.ori
-
-    @ori.setter
-    def ori(self, new_ori: float) -> None:
-        self.stimulus.ori = new_ori
+        self.stimulus.pos = self._get_bounded_pos(new_pos)
 
 
-class Sheep:
+class Sheep(Agent):
     """The sheep is a circle that tracks the mouse within the boundaries defined."""
 
     def __init__(
@@ -154,15 +236,7 @@ class Sheep:
         radius: float = config.sheep.radius,
         pos: tuple[float, float] | None = None,
     ) -> None:
-        if pos is None:
-            pos = config.display.center_deg
-        self.window = window
-        self.stimulus = visual.Circle(
-            window,
-            radius=radius,
-            fillColor=color,
-            pos=pos,
-        )
+        super().__init__(window=window, pos=pos, radius=radius, color=color)
         self.mouse = event.Mouse(win=window)
         self.last_mouse_x, self.last_mouse_y = self.mouse.getPos()
 
@@ -175,53 +249,11 @@ class Sheep:
         delta_y = current_mouse_y - self.last_mouse_y
 
         # Update sheep position based on movement since last frame
-        new_x = self.pos[0] + delta_x
-        new_y = self.pos[1] + delta_y
+        x, y = self.pos
+        new_x = x + delta_x
+        new_y = y + delta_y
 
         self.pos = (new_x, new_y)  # automatically keeps within bounds!
 
         # Update last mouse position
         self.last_mouse_x, self.last_mouse_y = current_mouse_x, current_mouse_y
-
-    def draw(self) -> None:
-        self.stimulus.draw()
-
-    @property
-    def pos(self) -> tuple[float, float]:
-        return self.stimulus.pos
-
-    @pos.setter
-    def pos(self, new_pos: tuple[float, float]) -> None:
-        """Sets the position of the sheep within the boundaries defined.
-
-        Args:
-            new_pos (tuple): The new position of the sheep
-        """
-        bounded_x = np.clip(
-            new_pos[0],
-            -config.display.horizontal_boundary,
-            config.display.horizontal_boundary,
-        )
-        bounded_y = np.clip(
-            new_pos[1],
-            -config.display.vertical_boundary,
-            config.display.vertical_boundary,
-        )
-
-        self.stimulus.pos = (bounded_x, bounded_y)
-
-    @property
-    def color(self) -> tuple[float, float, float] | str:
-        return self.stimulus.fillColor
-
-    @color.setter
-    def color(self, new_color: tuple[float, float, float] | str) -> None:
-        self.stimulus.fillColor = new_color
-
-    @property
-    def radius(self) -> float:
-        return self.stimulus.radius
-
-    @radius.setter
-    def radius(self, new_radius: float) -> None:
-        self.stimulus.radius = new_radius
