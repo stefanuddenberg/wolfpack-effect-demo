@@ -1,4 +1,4 @@
-from psychopy import event, visual
+from psychopy import event
 
 from src.config import config
 from src.agents import Sheep, Wolf
@@ -30,4 +30,4 @@ def main(face_sheep: bool = True) -> None:
 
 
 if __name__ == "__main__":
-    main(face_sheep=False)
+    main()
