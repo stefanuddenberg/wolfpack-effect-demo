@@ -1,16 +1,14 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
-
-
-@dataclass
-class MonitorConfig:
-    width_cm: float = 31.26
-    viewing_distance_cm: float = 57
-    resolution_px: tuple[int, int] = (1512, 982)
+from psychopy import monitors
+from psychopy.tools.monitorunittools import pix2deg
 
 
 @dataclass
 class DisplayConfig:
+    width_cm: float = 31.26
+    viewing_distance_cm: float = 57
+    resolution_px: tuple[int, int] = (1512, 982)
     screen: int = 0
     units: Literal["deg", "rad"] = "deg"
     bg_color: str = "black"
@@ -19,6 +17,13 @@ class DisplayConfig:
     allow_gui: bool = False
     mouse_visible: bool = False
 
+    def __post_init__(self):
+        self.monitor = monitors.Monitor("testMonitor")
+        self.monitor.setSizePix(self.resolution_px)
+        self.monitor.setWidth(self.width_cm)
+        self.monitor.setDistance(self.viewing_distance_cm)
+        self.monitor.saveMon()
+
 
 @dataclass
 class WolfConfig:
@@ -26,18 +31,17 @@ class WolfConfig:
     speed: float = 0.1
     color: str = "red"
     size: float = 1.5
-    vertices: list[tuple[float, float]] | None = None
+    # Chevron vertices
+    vertices: list[tuple[float, float]] = field(
+        default_factory=lambda: [
+            (-0.5, -0.5),  # Bottom-left
+            (0, 0.5),  # Top-center
+            (0.5, -0.5),  # Bottom-right
+            (0, -0.2),  # Inner bottom-center
+            (-0.5, -0.5),  # Back to start
+        ]
+    )
     direction_noise: float = 0.1
-
-    def __post_init__(self):
-        if self.vertices is None:
-            self.vertices = [
-                (-0.5, -0.5),  # Bottom-left
-                (0, 0.5),  # Top-center
-                (0.5, -0.5),  # Bottom-right
-                (0, -0.2),  # Inner bottom-center
-                (-0.5, -0.5),  # Back to start
-            ]
 
 
 @dataclass
@@ -48,35 +52,23 @@ class SheepConfig:
 
 @dataclass
 class KeyConfig:
-    quit: list[str] = None
-    toggle_condition: list[str] = None
-
-    def __post_init__(self):
-        if self.quit is None:
-            self.quit = ["escape"]
-        if self.toggle_condition is None:
-            self.toggle_condition = ["space"]
+    quit: list[str] = field(default_factory=lambda: ["escape"])
+    toggle_condition: list[str] = field(default_factory=lambda: ["space"])
 
 
 @dataclass
 class Config:
-    monitor: MonitorConfig = None
-    display: DisplayConfig = None
-    wolf: WolfConfig = None
-    sheep: SheepConfig = None
-    keys: KeyConfig = None
+    display: DisplayConfig = DisplayConfig()
+    wolf: WolfConfig = WolfConfig()
+    sheep: SheepConfig = SheepConfig()
+    keys: KeyConfig = KeyConfig()
 
     def __post_init__(self):
-        if self.monitor is None:
-            self.monitor = MonitorConfig()
-        if self.display is None:
-            self.display = DisplayConfig()
-        if self.wolf is None:
-            self.wolf = WolfConfig()
-        if self.sheep is None:
-            self.sheep = SheepConfig()
-        if self.keys is None:
-            self.keys = KeyConfig()
+        width_deg = pix2deg(self.display.resolution_px[0], self.display.monitor)
+        height_deg = pix2deg(self.display.resolution_px[1], self.display.monitor)
+
+        self.display.horizontal_boundary = width_deg / 2 - self.wolf.size / 2
+        self.display.vertical_boundary = height_deg / 2 - self.wolf.size / 2
 
 
 # Create the configuration instance
