@@ -5,7 +5,7 @@ from src.config import get_config
 from src.agents import Sheep, Wolf
 from src.utils import create_window
 
-config = get_config(demo=True)
+config = get_config(config_type="demo")
 
 
 def main() -> None:
