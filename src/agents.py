@@ -34,13 +34,13 @@ class Agent(ABC):
         return np.random.randint(min_interval, max_interval)
 
     def _create_stimulus(
-        self, window: visual.Window, config: AgentConfig, pos: tuple[float, float]
+        self, window: visual.Window, agent_config: AgentConfig, pos: tuple[float, float]
     ) -> visual.BaseVisualStim:
-        """Creates the appropriate stimulus based on the shape type.
+        """Creates the appropriate stimulus based on shape type.
 
         Args:
             window: The window to draw the stimulus onto
-            config: The agent's configuration
+            agent_config: The agent's configuration
             pos: The stimulus's position
 
         Returns:
@@ -49,25 +49,25 @@ class Agent(ABC):
         Raises:
             ValueError: If the shape type is unknown
         """
-        shape_creators: dict[str, Callable] = {
-            "circle": self._create_circle,
-            "dart": self._create_dart,
-        }
+        if agent_config.shape_type == "circle":
+            shape_config = agent_config.config
+            if not isinstance(shape_config, CircleConfig):
+                # If somehow it's not a CircleConfig, create one with the specified color
+                shape_config = CircleConfig(
+                    color=shape_config.color, size=shape_config.size
+                )
+            return self._create_circle(window, shape_config, pos)
 
-        shape_configs: dict[str, ShapeConfig] = {
-            "circle": CircleConfig(),
-            "dart": DartConfig(),
-        }
+        if agent_config.shape_type == "dart":
+            shape_config = agent_config.config
+            if not isinstance(shape_config, DartConfig):
+                # If somehow it's not a DartConfig, create one with the specified color
+                shape_config = DartConfig(
+                    color=shape_config.color, size=shape_config.size
+                )
+            return self._create_dart(window, shape_config, pos)
 
-        creator: Callable | None = shape_creators.get(config.shape_type)
-        if creator is None:
-            raise ValueError(f"Unknown shape type: {config.shape_type}")
-
-        config: ShapeConfig | None = shape_configs.get(config.shape_type)
-        if config is None:
-            raise ValueError(f"Unknown shape type: {config.shape_type}")
-
-        return creator(window, config, pos)
+        raise ValueError(f"Unknown shape type: {agent_config.shape_type}")
 
     def _create_circle(
         self, window: visual.Window, config: CircleConfig, pos: tuple[float, float]
