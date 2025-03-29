@@ -1,8 +1,8 @@
-from .config import config, Config
+from .config import get_config, Config, DemoConfig
 from psychopy import visual
 
 
-def create_window(config: Config = config) -> visual.Window:
+def create_window(config: Config) -> visual.Window:
     """Create a window for the demo with the given configuration."""
     win = visual.Window(
         monitor=config.display.monitor,

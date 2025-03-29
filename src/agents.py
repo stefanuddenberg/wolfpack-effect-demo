@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 import numpy as np
-from .config import config
+from .config import config, AgentConfig, CircleConfig, DartConfig, ShapeConfig
 from psychopy import visual, event
-from typing import Literal
+from typing import Callable, Literal
 
 
 class Agent(ABC):
@@ -11,18 +11,82 @@ class Agent(ABC):
     def __init__(
         self,
         window: visual.Window,
+        agent_config: AgentConfig,
         pos: tuple[float, float] | None = None,
-        radius: float = config.sheep.radius,
-        color: tuple[float, float, float] | str = config.sheep.color,
     ):
         if pos is None:
             pos = config.display.center_deg
 
-        self.window = window
-        self.stimulus = visual.Circle(
+        self.window: visual.Window = window
+        self.stimulus: visual.BaseVisualStim = self._create_stimulus(
+            window, agent_config, pos
+        )
+        self.frames_until_direction_update: int = (
+            self._generate_random_frames_until_direction_update(
+                *agent_config.direction_update_interval
+            )
+        )
+        self.frame_counter: int = 0
+
+    def _generate_random_frames_until_direction_update(
+        self, min_interval: int, max_interval: int
+    ) -> int:
+        return np.random.randint(min_interval, max_interval)
+
+    def _create_stimulus(
+        self, window: visual.Window, config: AgentConfig, pos: tuple[float, float]
+    ) -> visual.BaseVisualStim:
+        """Creates the appropriate stimulus based on the shape type.
+
+        Args:
+            window: The window to draw the stimulus onto
+            config: The agent's configuration
+            pos: The stimulus's position
+
+        Returns:
+            The created stimulus
+
+        Raises:
+            ValueError: If the shape type is unknown
+        """
+        shape_creators: dict[str, Callable] = {
+            "circle": self._create_circle,
+            "dart": self._create_dart,
+        }
+
+        shape_configs: dict[str, ShapeConfig] = {
+            "circle": CircleConfig(),
+            "dart": DartConfig(),
+        }
+
+        creator: Callable | None = shape_creators.get(config.shape_type)
+        if creator is None:
+            raise ValueError(f"Unknown shape type: {config.shape_type}")
+
+        config: ShapeConfig | None = shape_configs.get(config.shape_type)
+        if config is None:
+            raise ValueError(f"Unknown shape type: {config.shape_type}")
+
+        return creator(window, config, pos)
+
+    def _create_circle(
+        self, window: visual.Window, config: CircleConfig, pos: tuple[float, float]
+    ) -> visual.Circle:
+        return visual.Circle(
             window,
-            radius=radius,
-            fillColor=color,
+            radius=config.radius,
+            fillColor=config.color,
+            pos=pos,
+        )
+
+    def _create_dart(
+        self, window: visual.Window, config: DartConfig, pos: tuple[float, float]
+    ) -> visual.ShapeStim:
+        return visual.ShapeStim(
+            window,
+            vertices=config.vertices,
+            fillColor=config.color,
+            size=config.size,
             pos=pos,
         )
 
@@ -34,6 +98,16 @@ class Agent(ABC):
 
     def draw(self) -> None:
         self.stimulus.draw()
+
+    @property
+    def direction_in_deg(self) -> float:
+        """The direction of the agent in degrees."""
+        return np.degrees(self.direction)
+
+    @property
+    def direction_in_rad(self) -> float:
+        """The direction of the agent in radians."""
+        return self.direction
 
     @property
     def pos(self) -> tuple[float, float]:
@@ -113,16 +187,9 @@ class Wolf(Agent):
     def __init__(
         self,
         window: visual.Window,
+        agent_config: AgentConfig,
         pos: tuple[float, float] | None = None,
-        speed: float = config.wolf.speed,
-        color: tuple[float, float, float] | str = config.wolf.color,
-        size: float = config.wolf.size,
-        vertices: list[tuple[float, float]] | None = None,
-        direction_noise: float = config.wolf.direction_noise,
     ) -> None:
-        if vertices is None:
-            vertices = config.wolf.vertices.copy()
-
         if pos is None:
             pos = [
                 np.random.uniform(
@@ -130,22 +197,21 @@ class Wolf(Agent):
                     config.display.horizontal_boundary,
                 ),
                 np.random.uniform(
-                    -config.display.vertical_boundary, config.display.vertical_boundary
+                    -config.display.vertical_boundary,
+                    config.display.vertical_boundary,
                 ),
             ]
+        super().__init__(window=window, agent_config=agent_config, pos=pos)
 
-        self.stimulus = visual.ShapeStim(
-            window,
-            vertices=vertices,
-            fillColor=color,
-            pos=pos,
-            size=size,
-        )
-        self.speed = speed
-
-        # initialize direction with random value in radians
-        self.direction = np.random.uniform(0, 2 * np.pi)
-        self.direction_noise = direction_noise
+        # Only darts need to know about facingness
+        if agent_config.shape_type == "dart":
+            self.speed: float = agent_config.speed
+            self.direction: float = np.random.uniform(0, 2 * np.pi)
+            self.direction_update_window: float = agent_config.direction_update_window
+            self.direction_update_interval: tuple[int, int] = (
+                agent_config.direction_update_interval
+            )
+            self.face_target: bool = agent_config.face_target
 
     def calculate_facing_angle(
         self,
@@ -176,30 +242,51 @@ class Wolf(Agent):
         # Output in desired units
         return angle if units == "deg" else np.radians(angle)
 
+    def _update_direction(self) -> None:
+        """Updates the direction within the allowed window."""
+        # Random angle within our window (centered on current direction)
+        max_deviation = self.direction_update_window / 2
+        angle_change = np.random.uniform(-max_deviation, max_deviation)
+        self.direction = (self.direction + angle_change) % (2 * np.pi)
+
+        # Reset counter and get new random interval
+        min_interval, max_interval = self.direction_update_interval
+        self.frames_until_direction_update = (
+            self._generate_random_frames_until_direction_update(
+                min_interval, max_interval
+            )
+        )
+        self.frame_counter = 0
+
     def update(
         self,
         target_pos: tuple[float, float],
-        face_sheep: bool,
     ) -> None:
         """Updates the wolf's position and direction for the current frame.
 
         Args:
             target_pos (tuple): The x, y coordinate of the target
-            face_sheep (bool): Whether the wolf should face the sheep or 90 degrees away
         """
+        # Only update position and orientation if it's a dart
+        if not hasattr(self, "speed"):
+            return
+
+        # Update position
         new_pos = self.pos + np.array(
             [np.cos(self.direction) * self.speed, np.sin(self.direction) * self.speed]
         )
-
         self.pos = new_pos  # automatically keeps within bounds!
 
-        # Gradually adjust direction with some randomness
-        self.direction += np.random.normal(0, self.direction_noise)
+        # Check if it's time to update direction
+        self.frame_counter += 1
+        if self.frame_counter >= self.frames_until_direction_update:
+            self._update_direction()
 
-        angle_to_sheep_deg = self.calculate_facing_angle(
+        # Update orientation if it's a dart
+        angle_to_target_deg = self.calculate_facing_angle(
             target_pos, units=config.display.units
         )
-        self.ori = angle_to_sheep_deg if face_sheep else angle_to_sheep_deg + 90
+        self.ori = angle_to_target_deg if self.face_target else angle_to_target_deg + 90
 
     @property
     def pos(self) -> tuple[float, float]:
@@ -232,13 +319,16 @@ class Sheep(Agent):
     def __init__(
         self,
         window: visual.Window,
-        color: tuple[float, float, float] | str = config.sheep.color,
-        radius: float = config.sheep.radius,
+        agent_config: AgentConfig = config.sheep,
         pos: tuple[float, float] | None = None,
     ) -> None:
-        super().__init__(window=window, pos=pos, radius=radius, color=color)
+        super().__init__(window=window, agent_config=agent_config, pos=pos)
+        self.config = agent_config
         self.mouse = event.Mouse(win=window)
         self.last_mouse_x, self.last_mouse_y = self.mouse.getPos()
+
+        if agent_config.shape_type == "dart":
+            self.direction = 0.0  # we will update this based on mouse movement
 
     def update(self) -> None:
         """Updates the sheep's position based on the mouse's position."""
@@ -248,12 +338,18 @@ class Sheep(Agent):
         delta_x = current_mouse_x - self.last_mouse_x
         delta_y = current_mouse_y - self.last_mouse_y
 
-        # Update sheep position based on movement since last frame
+        # Update position based on movement since last frame
         x, y = self.pos
         new_x = x + delta_x
         new_y = y + delta_y
 
         self.pos = (new_x, new_y)  # automatically keeps within bounds!
+
+        # Update orientation if it's a dart and there's movement
+        if self.config.shape_type == "dart" and (abs(delta_x) > 0 or abs(delta_y) > 0):
+            # Calculate angle from movement direction and convert to PsychoPy's orientation system
+            angle = np.degrees(np.arctan2(delta_y, delta_x))
+            self.ori = (90 - angle) % 360
 
         # Update last mouse position
         self.last_mouse_x, self.last_mouse_y = current_mouse_x, current_mouse_y
