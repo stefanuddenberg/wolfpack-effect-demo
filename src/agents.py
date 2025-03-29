@@ -5,6 +5,7 @@ from psychopy import visual, event
 from typing import Callable, Literal
 
 
+# TODO: implement maximum speed of user-controlled sheep
 class Agent(ABC):
     """The base class for all agents. It is a circle by default."""
 
