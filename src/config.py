@@ -43,7 +43,7 @@ class DartConfig(ShapeConfig):
 class AgentConfig:
     """Configuration for any agent (wolf or sheep)"""
 
-    speed: float = 0.1
+    speed: float = 0.08
     shape_type: Literal["circle", "dart"] = "circle"
     config: CircleConfig | DartConfig = field(default_factory=lambda: CircleConfig())
     face_target: bool = True  # only relevant for darts
@@ -119,12 +119,57 @@ class DemoConfig(Config):
     )
 
 
+@dataclass
+class DontGetCaughtConfig(Config):
+    """Configuration for the Don't Get Caught game based on Gao et al. 2010."""
+
+    # Player (green circle following mouse)
+    sheep: AgentConfig = field(
+        default_factory=lambda: AgentConfig(
+            shape_type="circle",
+            # make it a little smaller and a different color than the distractors
+            config=CircleConfig(color="green", size=0.8),
+        )
+    )
+
+    # Hunter (nondescript circle that follows player)
+    wolf: DemoAgentConfig = field(
+        default_factory=lambda: DemoAgentConfig(
+            shape_type="circle",
+            # keep it the same color as the other distractors
+            config=CircleConfig(color="white", size=1.0),
+            count=1,
+        )
+    )
+
+    # Dart distractors (blue darts that may face the player)
+    dart_distractors: DemoAgentConfig = field(
+        default_factory=lambda: DemoAgentConfig(
+            shape_type="dart",
+            config=DartConfig(color="#2AB7CA", size=1.2),
+            count=7,
+            face_target=True,
+        )
+    )
+
+    # Circle distractors (blue circles that move randomly)
+    circle_distractors: DemoAgentConfig = field(
+        default_factory=lambda: DemoAgentConfig(
+            shape_type="circle",
+            config=CircleConfig(color="white", size=1.0),
+            count=7,
+        )
+    )
+
+
 # Create the configuration instance
 config = DemoConfig()
 
 
-def get_config(demo: bool = False) -> Config:
-    if demo:
+def get_config(config_type: Literal["demo", "dont_get_caught"]) -> Config:
+    if config_type == "demo":
         return DemoConfig()
+    if config_type == "dont_get_caught":
+        return DontGetCaughtConfig()
 
     return Config()
