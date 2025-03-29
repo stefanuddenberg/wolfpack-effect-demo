@@ -203,15 +203,13 @@ class Wolf(Agent):
             ]
         super().__init__(window=window, agent_config=agent_config, pos=pos)
 
-        # Only darts need to know about facingness
-        if agent_config.shape_type == "dart":
-            self.speed: float = agent_config.speed
-            self.direction: float = np.random.uniform(0, 2 * np.pi)
-            self.direction_update_window: float = agent_config.direction_update_window
-            self.direction_update_interval: tuple[int, int] = (
-                agent_config.direction_update_interval
-            )
-            self.face_target: bool = agent_config.face_target
+        self.speed: float = agent_config.speed
+        self.direction: float = np.random.uniform(0, 2 * np.pi)
+        self.direction_update_window: float = agent_config.direction_update_window
+        self.direction_update_interval: tuple[int, int] = (
+            agent_config.direction_update_interval
+        )
+        self.face_target: bool = agent_config.face_target  # only darts really need this
 
     def calculate_facing_angle(
         self,
