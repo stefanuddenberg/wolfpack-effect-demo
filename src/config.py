@@ -68,6 +68,8 @@ class DisplayConfig:
     center_deg: tuple[float, float] = (0, 0)
     allow_gui: bool = False
     mouse_visible: bool = False
+    horizontal_boundary: float = 0  # to be set later
+    vertical_boundary: float = 0  # to be set later
 
     def __post_init__(self):
         self.monitor = monitors.Monitor("testMonitor")
@@ -75,6 +77,9 @@ class DisplayConfig:
         self.monitor.setWidth(self.width_cm)
         self.monitor.setDistance(self.viewing_distance_cm)
         self.monitor.saveMon()
+
+        self.width_deg = pix2deg(self.resolution_px[0], self.monitor)
+        self.height_deg = pix2deg(self.resolution_px[1], self.monitor)
 
 
 @dataclass
@@ -91,18 +96,14 @@ class Config:
     keys: KeyConfig = KeyConfig()
 
     def __post_init__(self):
-        width_deg = pix2deg(self.display.resolution_px[0], self.display.monitor)
-        height_deg = pix2deg(self.display.resolution_px[1], self.display.monitor)
-
         # Calculate the boundaries based on the display size
-        # Use a default size if wolf is not a dart
+        # Use a default size, overwrite if it is a dart
+        agent_size = ShapeConfig().size
         if self.wolf.shape_type == "dart":
             agent_size = self.wolf.config.size
-        else:
-            agent_size = ShapeConfig().size
 
-        self.display.horizontal_boundary = width_deg / 2 - agent_size / 2
-        self.display.vertical_boundary = height_deg / 2 - agent_size / 2
+        self.display.horizontal_boundary = self.display.width_deg / 2 - agent_size / 2
+        self.display.vertical_boundary = self.display.height_deg / 2 - agent_size / 2
 
 
 @dataclass
