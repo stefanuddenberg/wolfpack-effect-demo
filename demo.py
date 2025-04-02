@@ -1,11 +1,12 @@
 from psychopy import event
 from psychopy.visual import Window
 
-from src.config import get_config
+from src.config import get_config, DemoConfig
 from src.agents import Sheep, Wolf
 from src.utils import create_window
+from typing import cast
 
-config = get_config(config_type="demo")
+config: DemoConfig = cast(DemoConfig, get_config(config_type="demo"))
 
 
 def main() -> None:

@@ -5,10 +5,13 @@ from psychopy import core, event, visual
 from psychopy.visual import Window
 
 from src.agents import Sheep, Wolf
-from src.config import get_config
+from src.config import get_config, DontGetCaughtConfig
 from src.utils import create_window
+from typing import cast
 
-config = get_config(config_type="dont_get_caught")
+config: DontGetCaughtConfig = cast(
+    DontGetCaughtConfig, get_config(config_type="dont_get_caught")
+)
 SCORE_MULTIPLIER = 10
 TIME_TO_SURVIVE = 10
 TEXT_HEIGHT = 0.7
