@@ -53,6 +53,11 @@ python demo.py
 python dont_get_caught.py
 ```
 
+When running the game, the circle should follow your mouse cursor, and stay within the bounded area.
+You should also be able to press `spacebar` to toggle between the wolves facing your cursor and facing 90 degrees away. This should happen instantaneously. The wolves should have their facing direction change depending on where your cursor is accordingly.
+
+When running the "Don't get caught" game, there should also be an automatically updating timer and scoreboard. After 10 seconds of survival, the game should end with a victory screen. Getting caught before then should end the game with a game over screen.
+
 ## Code structure
 
 - `demo.py` - Simple demonstration of the wolfpack effect
