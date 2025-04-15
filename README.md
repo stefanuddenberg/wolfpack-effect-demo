@@ -1,5 +1,7 @@
 # Wolfpack Effect Demo
 
+![Demonstration of the Wolfpack Effect](./src/images/demo.png)
+
 This repository contains two interactive demonstrations of the Wolfpack Effect (Gao et al.,2010). The demos are built
 with [PsychoPy](https://www.psychopy.org/), a Python library for creating psychology experiments.
 
