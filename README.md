@@ -42,7 +42,7 @@ A gamified version of Gao et al.'s (2010) Experiment 2 in which:
 - Press `spacebar` to toggle whether the blue darts face you (Wolfpack condition) or face away (Perpendicular Control
   condition)
 
-## Installation and testing
+## Installation
 
 ```bash
 # Install the required dependencies
@@ -54,6 +54,12 @@ python demo.py
 # Run the "don't get caught" game
 python dont_get_caught.py
 ```
+
+## Testing
+
+You can run the tests by running `pytest` in the root directory.
+
+`python -m pytest`
 
 When running the game, the circle should follow your mouse cursor, and stay within the bounded area.
 You should also be able to press `spacebar` to toggle between the wolves facing your cursor and facing 90 degrees away. This should happen instantaneously. The wolves should have their facing direction change depending on where your cursor is accordingly.
