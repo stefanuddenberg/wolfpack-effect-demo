@@ -92,7 +92,7 @@ class Agent(ABC):
         )
 
     @abstractmethod
-    def update(self) -> None:
+    def update(self, *args, **kwargs) -> None:
         """Updates the agent's position and/or other properties
         for the current frame."""
         pass
@@ -192,7 +192,7 @@ class Wolf(Agent):
         pos: tuple[float, float] | None = None,
     ) -> None:
         if pos is None:
-            pos = [
+            pos = (
                 np.random.uniform(
                     -config.display.horizontal_boundary,
                     config.display.horizontal_boundary,
@@ -201,7 +201,7 @@ class Wolf(Agent):
                     -config.display.vertical_boundary,
                     config.display.vertical_boundary,
                 ),
-            ]
+            )
         super().__init__(window=window, agent_config=agent_config, pos=pos)
 
         self.speed: float = agent_config.speed
@@ -271,8 +271,14 @@ class Wolf(Agent):
             return
 
         # Update position
-        new_pos = self.pos + np.array(
-            [np.cos(self.direction) * self.speed, np.sin(self.direction) * self.speed]
+        new_pos = tuple(
+            self.pos
+            + np.array(
+                [
+                    np.cos(self.direction) * self.speed,
+                    np.sin(self.direction) * self.speed,
+                ]
+            )
         )
         self.pos = new_pos  # automatically keeps within bounds!
 
@@ -324,14 +330,23 @@ class Sheep(Agent):
         super().__init__(window=window, agent_config=agent_config, pos=pos)
         self.config = agent_config
         self.mouse = event.Mouse(win=window)
-        self.last_mouse_x, self.last_mouse_y = self.mouse.getPos()
+        # handle case where mouse is not on screen (in part to get mypy to stop complaining)
+        mouse_pos = self.mouse.getPos()
+        if mouse_pos is None:
+            mouse_pos = self.pos
+        self.last_mouse_x, self.last_mouse_y = mouse_pos
 
         if agent_config.shape_type == "dart":
             self.direction = 0.0  # we will update this based on mouse movement
 
     def update(self) -> None:
         """Updates the sheep's position based on the mouse's position."""
-        current_mouse_x, current_mouse_y = self.mouse.getPos()
+        current_pos = self.mouse.getPos()
+        # Handle case where getPos() returns None
+        if current_pos is None:
+            current_mouse_x, current_mouse_y = self.last_mouse_x, self.last_mouse_y
+        else:
+            current_mouse_x, current_mouse_y = current_pos
 
         # Get mouse movement since last frame
         delta_x = current_mouse_x - self.last_mouse_x
