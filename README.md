@@ -57,7 +57,7 @@ python dont_get_caught.py
 
 ## Testing
 
-You can run the tests by running `pytest` in the root directory.
+You can run the tests by running `pytest` in the root directory as a module. (Doing so adds the current directory to the Python path, so you can avoid any issues with importing the `src` package.)
 
 `python -m pytest`
 
