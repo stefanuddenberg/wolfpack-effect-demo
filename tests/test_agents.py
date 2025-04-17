@@ -103,7 +103,7 @@ def test_wolf_calculate_facing_angle() -> None:
     assert np.isclose(
         angle_rad, np.pi / 2
     ), "Radians angle to target directly to the right failed"
-    # Target bottom left (-1, -1) -> PsychoPy angle 3pi/4 rad, real angle 3pi/4 rad
+    # Target bottom left (-1, -1) -> PsychoPy angle 5pi/4 rad, real angle 5pi/4 rad
     angle_rad = wolf.calculate_facing_angle(target_pos=(-1, -1), units="rad")
     assert np.isclose(
         angle_rad, 5 * np.pi / 4
